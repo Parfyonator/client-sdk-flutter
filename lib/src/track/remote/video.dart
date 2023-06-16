@@ -32,10 +32,10 @@ class RemoteVideoTrack extends RemoteTrack with VideoTrack {
   }
 
   @override
-  Future<void> monitorReceiver() async {
-    if (receiver == null) {
+  Future<bool> monitorStats() async {
+    if (receiver == null && events.isDisposed) {
       _currentBitrate = 0;
-      return;
+      return false;
     }
     final stats = await getReceiverStats();
 
@@ -46,6 +46,7 @@ class RemoteVideoTrack extends RemoteTrack with VideoTrack {
     }
 
     prevStats = stats;
+    return true;
   }
 
   Future<VideoReceiverStats?> getReceiverStats() async {

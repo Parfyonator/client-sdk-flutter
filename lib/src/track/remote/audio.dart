@@ -67,10 +67,10 @@ class RemoteAudioTrack extends RemoteTrack
   get currentBitrate => _currentBitrate;
 
   @override
-  Future<void> monitorReceiver() async {
-    if (receiver == null) {
+  Future<bool> monitorStats() async {
+    if (receiver == null && events.isDisposed) {
       _currentBitrate = 0;
-      return;
+      return false;
     }
     final stats = await getReceiverStats();
 
@@ -81,6 +81,7 @@ class RemoteAudioTrack extends RemoteTrack
     }
 
     prevStats = stats;
+    return true;
   }
 
   Future<AudioReceiverStats?> getReceiverStats() async {

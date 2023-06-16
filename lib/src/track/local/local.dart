@@ -17,7 +17,6 @@ import '../../types/other.dart';
 import '../options.dart';
 import '../remote/audio.dart';
 import '../remote/video.dart';
-import '../stats.dart';
 import '../track.dart';
 import 'audio.dart';
 import 'video.dart';
@@ -198,7 +197,6 @@ abstract class LocalTrack extends Track {
     }
 
     logger.fine('$objectId.publish()');
-    startMonitor();
     _published = true;
     return true;
   }
@@ -212,26 +210,7 @@ abstract class LocalTrack extends Track {
     }
 
     logger.fine('$objectId.unpublish()');
-    stopMonitor();
     _published = false;
     return true;
-  }
-
-  Timer? _monitorTimer;
-
-  Future<void> monitorSender();
-
-  @internal
-  void startMonitor() {
-    _monitorTimer ??=
-        Timer.periodic(const Duration(milliseconds: monitorFrequency), (_) {
-      monitorSender();
-    });
-  }
-
-  @internal
-  void stopMonitor() {
-    _monitorTimer?.cancel();
-    _monitorTimer = null;
   }
 }

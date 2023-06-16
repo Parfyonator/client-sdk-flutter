@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:meta/meta.dart';
 import 'package:uuid/uuid.dart';
@@ -10,6 +12,7 @@ import '../managers/event.dart';
 import '../proto/livekit_models.pb.dart' as lk_models;
 import '../support/disposable.dart';
 import '../types/other.dart';
+import 'stats.dart';
 
 /// Wrapper around a MediaStreamTrack with additional metadata.
 /// Base for [AudioTrack] and [VideoTrack],
@@ -58,6 +61,7 @@ abstract class Track extends DisposableChangeNotifier
 
     onDispose(() async {
       logger.fine('${objectId} onDispose()');
+      await stop();
       // dispose events
       await events.dispose();
     });
@@ -96,6 +100,8 @@ abstract class Track extends DisposableChangeNotifier
 
     logger.fine('$objectId.start()');
 
+    startMonitor();
+
     _active = true;
     return true;
   }
@@ -108,6 +114,8 @@ abstract class Track extends DisposableChangeNotifier
       // already stopped
       return false;
     }
+
+    stopMonitor();
 
     logger.fine('$objectId.stop()');
 
@@ -138,6 +146,26 @@ abstract class Track extends DisposableChangeNotifier
       logger.warning(
           '[$objectId] set rtc.mediaStreamTrack.enabled did throw ${_}');
     }
+  }
+
+  Timer? _monitorTimer;
+
+  Future<bool> monitorStats();
+
+  @internal
+  void startMonitor() {
+    _monitorTimer ??= Timer.periodic(
+        const Duration(milliseconds: monitorFrequency), (_) async {
+      if (!await monitorStats()) {
+        stopMonitor();
+      }
+    });
+  }
+
+  @internal
+  void stopMonitor() {
+    _monitorTimer?.cancel();
+    _monitorTimer = null;
   }
 
   @internal
