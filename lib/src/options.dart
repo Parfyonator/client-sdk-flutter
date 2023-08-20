@@ -1,6 +1,6 @@
 import 'constants.dart';
-import 'core/room.dart';
 import 'e2ee/options.dart';
+import 'proto/livekit_models.pb.dart';
 import 'publication/remote.dart';
 import 'track/local/audio.dart';
 import 'track/local/video.dart';
@@ -82,6 +82,8 @@ class RoomOptions {
   /// enable Dynacast, off by default. With Dynacast dynamically pauses
   /// video layers that are not being consumed by any subscribers, significantly
   /// reducing publishing CPU and bandwidth usage.
+  /// Dynacast will be enabled if SVC codecs (VP9/AV1) are used. Multi-codec
+  /// simulcast requires dynacast
   final bool dynacast;
 
   /// Set this to false in case you would like to stop the track yourself.
@@ -115,6 +117,7 @@ class RoomOptions {
     bool? adaptiveStream,
     bool? dynacast,
     bool? stopLocalTrackOnUnpublish,
+    E2EEOptions? e2eeOptions,
   }) {
     return RoomOptions(
       defaultCameraCaptureOptions:
@@ -133,12 +136,27 @@ class RoomOptions {
       dynacast: dynacast ?? this.dynacast,
       stopLocalTrackOnUnpublish:
           stopLocalTrackOnUnpublish ?? this.stopLocalTrackOnUnpublish,
+      e2eeOptions: e2eeOptions ?? this.e2eeOptions,
     );
   }
 }
 
+class BackupVideoCodec {
+  BackupVideoCodec({
+    required this.codec,
+    required this.encoding,
+    this.simulcast = true,
+  });
+  String codec;
+  VideoEncoding encoding;
+  bool simulcast;
+}
+
 /// Options used when publishing video.
 class VideoPublishOptions {
+  static const defaultCameraName = 'camera';
+  static const defaultScreenShareName = 'screenshare';
+
   /// The video codec to use.
   final String videoCodec;
 
@@ -152,9 +170,16 @@ class VideoPublishOptions {
   /// Defaults to true.
   final bool simulcast;
 
+  /// Name of the video track.
+  final String? name;
+
   final List<VideoParameters> videoSimulcastLayers;
 
   final List<VideoParameters> screenShareSimulcastLayers;
+
+  final String? scalabilityMode;
+
+  final BackupVideoCodec? backupCodec;
 
   const VideoPublishOptions({
     this.videoCodec = 'H264',
@@ -162,6 +187,9 @@ class VideoPublishOptions {
     this.simulcast = true,
     this.videoSimulcastLayers = const [],
     this.screenShareSimulcastLayers = const [],
+    this.name,
+    this.backupCodec,
+    this.scalabilityMode,
   });
 
   VideoPublishOptions copyWith({
@@ -169,6 +197,9 @@ class VideoPublishOptions {
     bool? simulcast,
     List<VideoParameters>? videoSimulcastLayers,
     List<VideoParameters>? screenShareSimulcastLayers,
+    String? videoCodec,
+    BackupVideoCodec? backupCodec,
+    String? scalabilityMode,
   }) =>
       VideoPublishOptions(
         videoEncoding: videoEncoding ?? this.videoEncoding,
@@ -176,6 +207,9 @@ class VideoPublishOptions {
         videoSimulcastLayers: videoSimulcastLayers ?? this.videoSimulcastLayers,
         screenShareSimulcastLayers:
             screenShareSimulcastLayers ?? this.screenShareSimulcastLayers,
+        videoCodec: videoCodec ?? this.videoCodec,
+        backupCodec: backupCodec ?? this.backupCodec,
+        scalabilityMode: scalabilityMode ?? this.scalabilityMode,
       );
 
   @override
@@ -215,4 +249,12 @@ class AudioPublishOptions {
 
   @override
   String toString() => '${runtimeType}(dtx: ${dtx})';
+}
+
+final backupCodecs = ['vp8', 'h264'];
+
+final videoCodecs = ['vp8', 'h264', 'vp9', 'av1'];
+
+bool isBackupCodec(String codec) {
+  return backupCodecs.contains(codec.toLowerCase());
 }
