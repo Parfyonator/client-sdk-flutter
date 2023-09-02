@@ -279,11 +279,11 @@ class Utils {
       switch (codec) {
         case 'av1':
           result =
-              result.copyWith(maxBitrate: (result.maxBitrate * 0.7) as int);
+              result.copyWith(maxBitrate: (result.maxBitrate * 0.7).toInt());
           break;
         case 'vp9':
           result =
-              result.copyWith(maxBitrate: (result.maxBitrate * 0.85) as int);
+              result.copyWith(maxBitrate: (result.maxBitrate * 0.85).toInt());
           break;
         default:
           break;
@@ -428,9 +428,11 @@ class Utils {
       }
       for (int i = 0; i < sm.spatial; i += 1) {
         encodings.add(rtc.RTCRtpEncoding(
-          rid: videoRids[i],
-          maxBitrate: (videoEncoding.maxBitrate / 3 * (i + 1)).toInt(),
+          rid: videoRids[2 - i],
+          maxBitrate: videoEncoding.maxBitrate ~/ math.pow(3, i),
           maxFramerate: videoEncoding.maxFramerate,
+          scaleResolutionDownBy: null,
+          numTemporalLayers: sm.temporal.toInt(),
         ));
       }
       encodings[0].scalabilityMode = scalabilityMode;
@@ -441,6 +443,7 @@ class Utils {
       return [videoEncoding.toRTCRtpEncoding()];
     }
 
+    // compute simulcast encodings
     final userParams = isScreenShare
         ? options.screenShareSimulcastLayers
         : options.videoSimulcastLayers;
